@@ -35,13 +35,13 @@ export default function Timeline({ activities = [] }: TimelineProps) {
     }
   }
 
-  const defaultActivities = [
-    { time: '09:00 AM', name: 'Breakfast at The Sea View Resort', type: 'HOTEL' },
-    { time: '10:30 AM', name: 'Explore Fort Aguada Lighthouse', type: 'ATTRACTION' },
-    { time: '01:00 PM', name: 'Seafood Lunch at Fisherman\'s Wharf', type: 'RESTAURANT' },
-    { time: '03:30 PM', name: 'Spice Garden Walk & Tasting Tour', type: 'ATTRACTION' },
-    { time: '06:30 PM', name: 'Coastal Sunset Cruise Party', type: 'EVENT' },
-    { time: '08:30 PM', name: 'Candlelight Dinner at Seaside Grill', type: 'RESTAURANT' }
+  const defaultActivities: Activity[] = [
+    { time: '09:00 AM', name: 'Breakfast at The Sea View Resort', type: 'HOTEL', status: 'Confirmed' },
+    { time: '10:30 AM', name: 'Explore Fort Aguada Lighthouse', type: 'ATTRACTION', status: 'Confirmed' },
+    { time: '01:00 PM', name: 'Seafood Lunch at Fisherman\'s Wharf', type: 'RESTAURANT', status: 'Confirmed' },
+    { time: '03:30 PM', name: 'Spice Garden Walk & Tasting Tour', type: 'ATTRACTION', status: 'Confirmed' },
+    { time: '06:30 PM', name: 'Coastal Sunset Cruise Party', type: 'EVENT', status: 'Confirmed' },
+    { time: '08:30 PM', name: 'Candlelight Dinner at Seaside Grill', type: 'RESTAURANT', status: 'Confirmed' }
   ]
 
   const items = activities.length > 0 ? activities : defaultActivities
