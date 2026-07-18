@@ -32,6 +32,7 @@ public class TripService {
     public List<TripDto> getTripsByUser(Long userId) {
         return tripRepository.findByUserId(userId).stream()
                 .map(this::mapToTripDto)
+                .sorted((t1, t2) -> t2.getId().compareTo(t1.getId()))
                 .collect(Collectors.toList());
     }
 

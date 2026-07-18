@@ -28,8 +28,10 @@ export default function Map({
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
   const routePolylineRef = useRef<any>(null)
+  const tileLayerRef = useRef<any>(null)
   const [leafletLoaded, setLeafletLoaded] = useState(false)
   const [selectedPin, setSelectedPin] = useState<MapPinData | null>(null)
+  const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('satellite')
 
   // Dynamically load Leaflet CDN files
   useEffect(() => {
@@ -75,16 +77,18 @@ export default function Map({
       attributionControl: false
     }).setView([centerLat, centerLng], 13)
 
-    // Load official Google Maps standard road tiles with API Key
+    // Load official Google Maps standard road or hybrid satellite tiles with API Key
     const googleKey = (import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY || '';
+    const lyrsCode = mapType === 'satellite' ? 'y' : 'm';
     const tileUrl = googleKey 
-      ? `https://mt1.googleusercontent.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=${googleKey}`
-      : 'https://mt1.googleusercontent.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+      ? `https://mt1.googleusercontent.com/vt/lyrs=${lyrsCode}&x={x}&y={y}&z={z}&key=${googleKey}`
+      : `https://mt1.googleusercontent.com/vt/lyrs=${lyrsCode}&x={x}&y={y}&z={z}`;
 
-    L.tileLayer(tileUrl, {
+    const tileLayer = L.tileLayer(tileUrl, {
       maxZoom: 20,
       subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
     }).addTo(map)
+    tileLayerRef.current = tileLayer
 
     L.control.zoom({
       position: 'bottomright'
@@ -99,6 +103,18 @@ export default function Map({
       }
     }
   }, [leafletLoaded])
+
+  // Dynamically switch tile layer URLs when mapType switches
+  useEffect(() => {
+    if (!tileLayerRef.current || !leafletLoaded) return
+    const googleKey = (import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY || '';
+    const lyrsCode = mapType === 'satellite' ? 'y' : 'm';
+    const tileUrl = googleKey
+      ? `https://mt1.googleusercontent.com/vt/lyrs=${lyrsCode}&x={x}&y={y}&z={z}&key=${googleKey}`
+      : `https://mt1.googleusercontent.com/vt/lyrs=${lyrsCode}&x={x}&y={y}&z={z}`;
+
+    tileLayerRef.current.setUrl(tileUrl);
+  }, [mapType, leafletLoaded])
 
   // Update Markers, Route Tracing, and Google-style Midpoint Labels
   useEffect(() => {
@@ -247,6 +263,30 @@ export default function Map({
           <Compass size={14} className="text-blue-500 animate-spin" />
           <span className="text-gray-800 dark:text-gray-200">Google Maps Service</span>
         </div>
+      </div>
+
+      {/* Map Type Toggle Control Overlay */}
+      <div className="absolute top-4 right-4 z-[1000] flex bg-white/95 dark:bg-zinc-900/95 p-1 rounded-xl border border-gray-200 dark:border-darkBorder shadow-md">
+        <button
+          onClick={() => setMapType('roadmap')}
+          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
+            mapType === 'roadmap'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-gray-500 hover:text-gray-800 dark:hover:text-white'
+          }`}
+        >
+          Map
+        </button>
+        <button
+          onClick={() => setMapType('satellite')}
+          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${
+            mapType === 'satellite'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-gray-500 hover:text-gray-800 dark:hover:text-white'
+          }`}
+        >
+          Satellite
+        </button>
       </div>
 
       {/* Map target div */}
