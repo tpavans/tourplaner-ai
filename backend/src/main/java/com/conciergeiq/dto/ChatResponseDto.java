@@ -55,7 +55,9 @@ public class ChatResponseDto {
     public static class ProposedActivity {
         private String time;
         private String name;
-        private String type; // 'HOTEL', 'RESTAURANT', 'EVENT', 'ATTRACTION'
+        private String type; // 'HOTEL', 'RESTAURANT', 'EVENT', 'ATTRACTION', 'LEISURE'
         private Long activityId;
+        private Double lat;
+        private Double lng;
     }
 }

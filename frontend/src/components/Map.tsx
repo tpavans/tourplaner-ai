@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { MapPin, Navigation, Compass, Layers, User } from 'lucide-react'
+import { MapPin, Navigation, Compass, Layers } from 'lucide-react'
 
 interface MapPinData {
   id: number
@@ -27,11 +27,41 @@ export default function Map({
   const [selectedPin, setSelectedPin] = useState<MapPinData | null>(null)
   const [showNearby, setShowNearby] = useState(true)
 
-  // Default coordinate bounding box for Goa
-  const minLat = 15.45
-  const maxLat = 15.65
-  const minLng = 73.70
-  const maxLng = 73.85
+  // Default coordinate bounding box (Goa fallback)
+  let minLat = 15.45
+  let maxLat = 15.65
+  let minLng = 73.70
+  let maxLng = 73.85
+
+  // Gather all active points on the canvas
+  const allPoints: { lat: number; lng: number }[] = []
+  if (userCoords) {
+    allPoints.push({ lat: userCoords.lat, lng: userCoords.lng })
+  }
+  pins.forEach(p => allPoints.push({ lat: p.lat, lng: p.lng }))
+  if (showNearby) {
+    nearbyPlaces.forEach(p => allPoints.push({ lat: p.lat, lng: p.lng }))
+  }
+
+  // Auto-fit bounding box to frame the active pins
+  if (allPoints.length > 0) {
+    const lats = allPoints.map(p => p.lat)
+    const lngs = allPoints.map(p => p.lng)
+    
+    const rawMinLat = Math.min(...lats)
+    const rawMaxLat = Math.max(...lats)
+    const rawMinLng = Math.min(...lngs)
+    const rawMaxLng = Math.max(...lngs)
+    
+    // Add 25% padding so markers aren't cut off at the edges
+    const latDelta = Math.max(rawMaxLat - rawMinLat, 0.01)
+    const lngDelta = Math.max(rawMaxLng - rawMinLng, 0.01)
+    
+    minLat = rawMinLat - latDelta * 0.25
+    maxLat = rawMaxLat + latDelta * 0.25
+    minLng = rawMinLng - lngDelta * 0.25
+    maxLng = rawMaxLng + lngDelta * 0.25
+  }
 
   // Map latitude/longitude to SVG coordinate space (500x500)
   const getCoordinates = (lat: number, lng: number) => {
@@ -69,19 +99,19 @@ export default function Map({
   }
 
   return (
-    <div className="relative w-full h-full min-h-[420px] bg-slate-100 dark:bg-zinc-950 border border-gray-250 dark:border-darkBorder rounded-2xl overflow-hidden flex flex-col shadow-inner">
+    <div className="relative w-full h-full min-h-[300px] bg-slate-100 dark:bg-zinc-950 border border-gray-250 dark:border-darkBorder rounded-2xl overflow-hidden flex flex-col shadow-inner">
       
       {/* Map Control Buttons */}
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
         <div className="bg-white/95 dark:bg-zinc-900/95 shadow-md px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-gray-200 dark:border-darkBorder">
           <Compass size={14} className="animate-spin text-indigo-600 dark:text-brand-400" />
-          <span>Goa Live Radar Map</span>
+          <span>Real-Time Map</span>
         </div>
         
         {userCoords && (
           <div className="bg-green-500/10 dark:bg-green-500/20 border border-green-500/30 text-green-700 dark:text-green-300 px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></span>
-            Live Location Active
+            GPS Location Active
           </div>
         )}
       </div>
@@ -159,7 +189,7 @@ export default function Map({
             )
           })}
 
-          {/* Render Nearby Places Pins (Malls, Movies, Restaurants) */}
+          {/* Render Nearby Places Pins */}
           {showNearby && nearbyPlaces.map((place) => {
             const { x, y } = getCoordinates(place.lat, place.lng)
             return (
@@ -190,7 +220,7 @@ export default function Map({
               <div>
                 <h4 className="font-bold text-sm">{selectedPin.name}</h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                  {selectedPin.type.toLowerCase()} • Coordinate GPS: {selectedPin.lat.toFixed(4)}, {selectedPin.lng.toFixed(4)}
+                  {selectedPin.type.toLowerCase()} • GPS: {selectedPin.lat.toFixed(4)}, {selectedPin.lng.toFixed(4)}
                 </p>
               </div>
             </div>
@@ -205,7 +235,7 @@ export default function Map({
           <div className="mt-4 flex gap-2">
             <button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-sm">
               <Navigation size={12} />
-              Go to Location (Directions Active)
+              Directions Active
             </button>
           </div>
         </div>

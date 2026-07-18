@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Send, Bot, User, CheckCircle, HelpCircle } from 'lucide-react'
+import { Send, Bot, User, CheckCircle, HelpCircle, Calendar, Navigation, MapPin } from 'lucide-react'
 import API from '../services/api'
+import Map from '../components/Map'
 
 interface ChatMessage {
   id?: number
@@ -30,6 +31,8 @@ interface ItineraryProposal {
     name: string
     type: string
     activityId?: number
+    lat?: number
+    lng?: number
   }[]
 }
 
@@ -40,8 +43,26 @@ export default function Chat() {
   const [cards, setCards] = useState<CardData[]>([])
   const [proposal, setProposal] = useState<ItineraryProposal | null>(null)
   const [bookingSuccess, setBookingSuccess] = useState('')
+  
+  // Geolocation tracker
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // Track browser location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        },
+        () => {
+          // Default near Vagator, Goa
+          setUserCoords({ lat: 15.5892, lng: 73.7381 })
+        }
+      )
+    }
+  }, [])
 
   useEffect(() => {
     // Load history
@@ -56,7 +77,7 @@ export default function Chat() {
           setMessages([
             {
               role: 'ASSISTANT',
-              message: "Hello! I am your ConciergeIQ travel orchestrator. Let me know what you'd like to do, or try asking: 'I want a relaxing afternoon.'",
+              message: "Hello! I am your ConciergeIQ travel orchestrator. Let me know what you'd like to do, or try asking:\n• 'plan dinner in ravulapalem budget 1000'\n• 'suggest beach events in Goa'",
             },
           ])
         }
@@ -116,7 +137,7 @@ export default function Chat() {
     if (!proposal) return
     setLoading(true)
     try {
-      const res = await API.post('/chat/itinerary/approve', proposal)
+      await API.post('/chat/itinerary/approve', proposal)
       setBookingSuccess('Itinerary booked successfully! Bookings added to your timeline.')
       setProposal(null)
       setCards([])
@@ -131,152 +152,247 @@ export default function Chat() {
     }
   }
 
+  // Map activities coordinates to pins for the interactive Map
+  const getMapPins = () => {
+    if (!proposal || !proposal.activities) return []
+    return proposal.activities.map((act, i) => ({
+      id: act.activityId || i,
+      name: act.name,
+      lat: act.lat || 15.55,
+      lng: act.lng || 73.75,
+      type: (act.type || 'ATTRACTION') as any
+    }))
+  }
+
+  // Calculate drive legs between points for proposal
+  const getProposalLegs = () => {
+    const legs: { from: string; to: string; distance: string; duration: string }[] = []
+    const pins = getMapPins()
+    let prevPoint: { name: string; lat: number; lng: number } | null = null
+
+    if (userCoords) {
+      prevPoint = { name: 'Your Location', lat: userCoords.lat, lng: userCoords.lng }
+    }
+
+    pins.forEach((pin) => {
+      if (prevPoint) {
+        const dLat = pin.lat - prevPoint.lat
+        const dLng = pin.lng - prevPoint.lng
+        const distance = Math.sqrt(dLat * dLat + dLng * dLng) * 111
+        const durationMin = Math.round(distance * 2)
+        legs.push({
+          from: prevPoint.name,
+          to: pin.name,
+          distance: `${distance.toFixed(1)} km`,
+          duration: `${durationMin} min drive`
+        })
+      }
+      prevPoint = { name: pin.name, lat: pin.lat, lng: pin.lng }
+    })
+    return legs
+  }
+
+  const legs = getProposalLegs()
+
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-5xl mx-auto bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl overflow-hidden shadow-sm">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto h-[calc(100vh-8.5rem)]"
+    >
       
-      {/* Active AI Status Header */}
-      <div className="border-b border-gray-200 dark:border-darkBorder p-4 bg-gray-50 dark:bg-zinc-900/50 flex items-center gap-3">
-        <div className="relative">
-          <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white">
-            <Bot size={20} />
-          </div>
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border border-white dark:border-zinc-900 rounded-full"></span>
-        </div>
-        <div>
-          <h3 className="font-bold text-sm">AI Concierge</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Online • Orchestrates schedules & restaurant tables</p>
-        </div>
-      </div>
-
-      {/* Message History Feed */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex items-start gap-3 ${msg.role === 'USER' ? 'justify-end' : 'justify-start'}`}
-          >
-            {msg.role === 'ASSISTANT' && (
-              <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-brand-950 flex items-center justify-center text-indigo-600 dark:text-brand-300 flex-shrink-0">
-                <Bot size={16} />
-              </div>
-            )}
-            
-            <div
-              className={`max-w-[75%] rounded-2xl p-4 text-sm ${
-                msg.role === 'USER'
-                  ? 'bg-indigo-600 text-white rounded-tr-none'
-                  : 'bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-100 rounded-tl-none border border-gray-200/50 dark:border-zinc-700/50'
-              }`}
-            >
-              <p className="leading-relaxed whitespace-pre-line">{msg.message}</p>
+      {/* Left Column: Chat dialogue feed (lg:col-span-7) */}
+      <div className="lg:col-span-7 flex flex-col bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl overflow-hidden shadow-sm h-full">
+        
+        {/* Active AI Status Header */}
+        <div className="border-b border-gray-200 dark:border-darkBorder p-4 bg-gray-50/50 dark:bg-zinc-900/50 flex items-center gap-3">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white">
+              <Bot size={20} />
             </div>
-
-            {msg.role === 'USER' && (
-              <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 flex-shrink-0 font-bold capitalize">
-                U
-              </div>
-            )}
+            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border border-white dark:border-zinc-900 rounded-full"></span>
           </div>
-        ))}
+          <div>
+            <h3 className="font-bold text-sm">AI Concierge</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Online • Orchestrates locations, schedules & tables</p>
+          </div>
+        </div>
 
-        {/* Dynamic Recommendations Cards inside chat feed */}
-        {cards.length > 0 && (
-          <div className="pl-11 grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-            {cards.map((card) => (
-              <div key={card.id} className="bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-darkBorder rounded-xl overflow-hidden shadow-sm flex flex-col">
-                <div className="h-28 overflow-hidden relative">
-                  <img src={card.imageUrl} alt={card.title} className="w-full h-full object-cover" />
-                  <span className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg capitalize">
-                    {card.type.toLowerCase()}
-                  </span>
+        {/* Message History Feed */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`flex items-start gap-3 ${msg.role === 'USER' ? 'justify-end' : 'justify-start'}`}
+            >
+              {msg.role === 'ASSISTANT' && (
+                <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-brand-950 flex items-center justify-center text-indigo-600 dark:text-brand-300 flex-shrink-0">
+                  <Bot size={16} />
                 </div>
-                <div className="p-3 flex flex-col gap-1">
-                  <h4 className="font-bold text-xs">{card.title}</h4>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 line-clamp-2">{card.description}</p>
-                  <div className="flex justify-between items-center text-[10px] font-bold pt-2 mt-1 border-t border-gray-100 dark:border-zinc-700">
-                    <span>Rating: {card.rating}★</span>
-                    <span>{card.distance} away</span>
+              )}
+              
+              <div
+                className={`max-w-[75%] rounded-2xl p-4 text-sm ${
+                  msg.role === 'USER'
+                    ? 'bg-indigo-600 text-white rounded-tr-none'
+                    : 'bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-gray-100 rounded-tl-none border border-gray-200/50 dark:border-zinc-700/50'
+                }`}
+              >
+                <p className="leading-relaxed whitespace-pre-line">{msg.message}</p>
+              </div>
+
+              {msg.role === 'USER' && (
+                <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 flex-shrink-0 font-bold capitalize">
+                  U
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Dynamic Recommendations Cards inside chat feed */}
+          {cards.length > 0 && (
+            <div className="pl-11 grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+              {cards.map((card) => (
+                <div key={card.id} className="bg-gray-50 dark:bg-zinc-850 border border-gray-200 dark:border-darkBorder rounded-xl overflow-hidden shadow-sm flex flex-col">
+                  <div className="h-28 overflow-hidden relative">
+                    <img src={card.imageUrl} alt={card.title} className="w-full h-full object-cover" />
+                    <span className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-lg capitalize">
+                      {card.type.toLowerCase()}
+                    </span>
+                  </div>
+                  <div className="p-3 flex flex-col gap-1">
+                    <h4 className="font-bold text-xs">{card.title}</h4>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 line-clamp-2">{card.description}</p>
+                    <div className="flex justify-between items-center text-[10px] font-bold pt-2 mt-1 border-t border-gray-100 dark:border-zinc-700">
+                      <span>Rating: {card.rating}★</span>
+                      <span>{card.distance} away</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
-        {/* Proposed Itinerary Panel inside chat feed */}
-        {proposal && (
-          <div className="pl-11 mt-4">
-            <div className="bg-indigo-50/50 dark:bg-brand-950/20 border border-indigo-200 dark:border-brand-900 rounded-2xl p-5 flex flex-col gap-4 max-w-xl">
-              <div>
-                <h4 className="font-bold text-sm text-indigo-700 dark:text-brand-300">{proposal.title}</h4>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Destination: {proposal.destination} • {proposal.startDate}</p>
-              </div>
-
-              {/* Itinerary Steps */}
-              <div className="space-y-3">
-                {proposal.activities.map((act, i) => (
-                  <div key={i} className="flex gap-3 text-xs items-center">
-                    <span className="font-bold text-indigo-600 dark:text-brand-400 w-16">{act.time}</span>
-                    <span className="h-2 w-2 rounded-full bg-indigo-500"></span>
-                    <span className="font-medium">{act.name} <span className="opacity-50 text-[10px] uppercase font-bold">({act.type.toLowerCase()})</span></span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Approve actions */}
-              <div className="mt-2 flex gap-2">
+          {/* Proposal approval actions inside chat feed */}
+          {proposal && (
+            <div className="pl-11 mt-4">
+              <div className="bg-indigo-50/50 dark:bg-brand-950/10 border border-indigo-200 dark:border-brand-900 rounded-2xl p-4 flex flex-col gap-3 max-w-xl">
+                <div>
+                  <h4 className="font-bold text-sm text-indigo-700 dark:text-brand-300">Ready to Book?</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Approve this plan to automate bookings in {proposal.destination}</p>
+                </div>
                 <button
                   onClick={handleApprove}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   <CheckCircle size={14} />
-                  Approve and Book Itinerary
+                  Confirm and Book Itinerary
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Successful Booking Banner */}
-        {bookingSuccess && (
-          <div className="pl-11 mt-2">
-            <div className="bg-green-100 border border-green-200 text-green-700 dark:bg-green-950/50 dark:text-green-300 dark:border-green-900 p-3 rounded-xl text-xs">
-              {bookingSuccess}
+          {bookingSuccess && (
+            <div className="pl-11 mt-2">
+              <div className="bg-green-150 border border-green-200 text-green-700 dark:bg-green-950/40 dark:text-green-300 dark:border-green-900 p-3 rounded-xl text-xs">
+                {bookingSuccess}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {loading && (
-          <div className="flex justify-start pl-11">
-            <div className="bg-gray-100 dark:bg-zinc-800 rounded-2xl p-4 text-xs italic text-gray-500 dark:text-gray-400 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></span>
-              <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-              <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.4s]"></span>
-              <span>AI Concierge is typing...</span>
+          {loading && (
+            <div className="flex justify-start pl-11">
+              <div className="bg-gray-100 dark:bg-zinc-800 rounded-2xl p-4 text-xs italic text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></span>
+                <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                <span>AI Concierge is typing...</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div ref={chatEndRef} />
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Input Box Footer */}
+        <form onSubmit={handleSend} className="border-t border-gray-200 dark:border-darkBorder p-4 bg-white dark:bg-zinc-900 flex gap-2">
+          <input
+            type="text"
+            placeholder="Plan dinner in Ravulapalem or ask: 'I want a relaxing afternoon'"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="flex-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200/80 dark:border-darkBorder rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500"
+          />
+          <button
+            type="submit"
+            className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white p-3 rounded-xl transition-all shadow-md"
+          >
+            <Send size={18} />
+          </button>
+        </form>
+
       </div>
 
-      {/* Input Box Footer */}
-      <form onSubmit={handleSend} className="border-t border-gray-200 dark:border-darkBorder p-4 bg-white dark:bg-zinc-900 flex gap-2">
-        <input
-          type="text"
-          placeholder="Ask AI Concierge (e.g. 'I want a relaxing afternoon.')"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="flex-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200/80 dark:border-darkBorder rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500"
-        />
-        <button
-          type="submit"
-          className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white p-3 rounded-xl transition-all shadow-md"
-        >
-          <Send size={18} />
-        </button>
-      </form>
+      {/* Right Column: Dynamic Map & Time-to-Time Proposal steps (lg:col-span-5) */}
+      <div className="lg:col-span-5 flex flex-col gap-4 h-full overflow-y-auto">
+        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-4 shadow-sm flex flex-col gap-3 flex-1 min-h-[300px]">
+          <h3 className="font-bold text-sm flex items-center gap-1.5">
+            <Navigation size={16} className="text-indigo-600 dark:text-brand-400" />
+            Live Map Tracking
+          </h3>
+          
+          <div className="flex-1">
+            <Map 
+              drawRoute={proposal !== null} 
+              userCoords={userCoords}
+              pins={getMapPins()}
+            />
+          </div>
+        </div>
 
-    </div>
+        {proposal ? (
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+            <div>
+              <h3 className="font-bold text-sm text-indigo-700 dark:text-brand-300">{proposal.title}</h3>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">Destination: {proposal.destination} • {proposal.startDate}</p>
+            </div>
+
+            {/* Time to Time Activities */}
+            <div className="relative border-l border-gray-200 dark:border-zinc-800 pl-4 ml-1 space-y-4">
+              {proposal.activities.map((act, i) => (
+                <div key={i} className="relative text-xs">
+                  <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-500 border border-white dark:border-zinc-900"></div>
+                  <div>
+                    <span className="font-bold text-indigo-600 dark:text-brand-400">{act.time}</span>
+                    <h5 className="font-bold text-gray-800 dark:text-gray-200">{act.name}</h5>
+                    <span className="text-[9px] uppercase font-bold text-gray-450">{act.type.toLowerCase()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Travel leg times summary */}
+            {legs.length > 0 && (
+              <div className="border-t border-gray-100 dark:border-zinc-800 pt-3 space-y-2">
+                <h4 className="text-[10px] uppercase font-bold text-gray-400">Travel Steps</h4>
+                {legs.map((leg, index) => (
+                  <div key={index} className="flex justify-between items-center text-[10px] text-gray-500 dark:text-gray-400">
+                    <span>{leg.from.split(' ')[0]} ➔ {leg.to.split(' ')[0]}</span>
+                    <span className="font-bold text-indigo-600 dark:text-brand-450">{leg.distance} ({leg.duration})</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-6 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 flex-1">
+            <Bot size={28} className="text-indigo-400 animate-pulse" />
+            <p>Ask the AI Concierge to plan an itinerary (e.g. "plan dinner in ravulapalem") to view the time-to-time route and live map coordinates.</p>
+          </div>
+        )}
+      </div>
+
+    </motion.div>
   )
 }

@@ -50,7 +50,6 @@ public class ChatConciergeService {
     public ChatResponseDto processMessage(String message, Long userId) {
         logger.info("Processing message from user {}: {}", userId, message);
 
-        // Load Guest Profile & Preferences
         PreferenceProfile profile = preferenceProfileRepository.findByUserId(userId)
                 .orElse(null);
 
@@ -64,21 +63,73 @@ public class ChatConciergeService {
                     .build());
         }
 
-        // Emulate similarity vector search matches based on query terms
         List<RecommendationCard> recommendations = new ArrayList<>();
         ItineraryProposalDto proposal = null;
         String responseText;
 
         String queryLower = message.toLowerCase();
 
-        if (queryLower.contains("relax") || queryLower.contains("afternoon") || queryLower.contains("plan")) {
-            // Retrieve restaurants and events in Goa/Local
+        // 1. Check if user is asking about Ravulapalem
+        if (queryLower.contains("ravulapalem")) {
+            responseText = "I've structured a custom dining and leisure itinerary for your evening in Ravulapalem, Konaseema. The weather is currently clear and warm. Here are my top local suggestions for you tonight:";
+
+            recommendations.add(RecommendationCard.builder()
+                    .id(201L)
+                    .title("Konaseema Ruchulu Restaurant")
+                    .description("Authentic spicy Andhra delicacies, biryanis, and traditional curries.")
+                    .category("Andhra Meals")
+                    .rating(4.8)
+                    .distance("0.5 km")
+                    .imageUrl("https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=800&q=80")
+                    .type("RESTAURANT")
+                    .build());
+
+            recommendations.add(RecommendationCard.builder()
+                    .id(202L)
+                    .title("Godavari River Ghats & Boating")
+                    .description("Enjoy a relaxing evening boat ride along the scenic Godavari River shoreline.")
+                    .category("Leisure")
+                    .rating(4.6)
+                    .distance("2.3 km")
+                    .imageUrl("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80")
+                    .type("ATTRACTION")
+                    .build());
+
+            // Build schedule timeline (Ravulapalem coordinates base: 16.7490, 81.8440)
+            List<ProposedActivity> activities = new ArrayList<>();
+            activities.add(ProposedActivity.builder()
+                    .time("07:00 PM")
+                    .name("Dinner at Konaseema Ruchulu")
+                    .type("RESTAURANT")
+                    .activityId(201L)
+                    .lat(16.7485)
+                    .lng(81.8435)
+                    .build());
+            
+            activities.add(ProposedActivity.builder()
+                    .time("08:30 PM")
+                    .name("Scenic Walk at Godavari River Ghats")
+                    .type("ATTRACTION")
+                    .activityId(202L)
+                    .lat(16.7550)
+                    .lng(81.8310)
+                    .build());
+
+            proposal = ItineraryProposalDto.builder()
+                    .title("Evening Dinner in Ravulapalem")
+                    .destination("Ravulapalem, AP")
+                    .startDate(LocalDate.now().toString())
+                    .endDate(LocalDate.now().toString())
+                    .activities(activities)
+                    .build();
+
+        } else if (queryLower.contains("relax") || queryLower.contains("afternoon") || queryLower.contains("plan") || queryLower.contains("goa")) {
+            // Default to Goa
             List<Restaurant> restaurants = restaurantRepository.findAll();
             List<Event> events = eventRepository.findAll();
 
-            // Match profiles: e.g. Veg / Seafood
             Restaurant selectedRestaurant = restaurants.stream()
-                    .filter(r -> r.getCuisineType().equalsIgnoreCase("Seafood") || r.getCuisineType().equalsIgnoreCase("Italian"))
+                    .filter(r -> r.getCuisineType().equalsIgnoreCase("Seafood") || r.getCuisineType().equalsIgnoreCase("Mediterranean"))
                     .findFirst()
                     .orElse(restaurants.isEmpty() ? null : restaurants.get(0));
 
@@ -87,7 +138,7 @@ public class ChatConciergeService {
                     .findFirst()
                     .orElse(events.isEmpty() ? null : events.get(0));
 
-            responseText = "Here is a relaxing itinerary I've structured for your afternoon in Goa, considering your profile preferences for coastal sights. The weather is currently a comfortable 28°C and roads are clear. Would you like to confirm and book this plan?";
+            responseText = "Here is a relaxing itinerary I've structured for your evening in Goa, considering your profile preferences. The weather is currently a comfortable 28°C. Would you like to confirm and book this plan?";
 
             if (selectedRestaurant != null) {
                 recommendations.add(RecommendationCard.builder()
@@ -115,11 +166,33 @@ public class ChatConciergeService {
                         .build());
             }
 
-            // Create Proposed Itinerary
+            // Goa coordinates (lat: 15.55, lng: 73.75)
             List<ProposedActivity> activities = new ArrayList<>();
-            activities.add(ProposedActivity.builder().time("01:00 PM").name(selectedRestaurant != null ? selectedRestaurant.getName() : "Seaside Lunch").type("RESTAURANT").activityId(selectedRestaurant != null ? selectedRestaurant.getId() : null).build());
-            activities.add(ProposedActivity.builder().time("03:30 PM").name("Scenic Beach Walk & Relaxation").type("LEISURE").build());
-            activities.add(ProposedActivity.builder().time("06:30 PM").name(selectedEvent != null ? selectedEvent.getName() : "Sunset Cruise").type("EVENT").activityId(selectedEvent != null ? selectedEvent.getId() : null).build());
+            activities.add(ProposedActivity.builder()
+                    .time("01:00 PM")
+                    .name(selectedRestaurant != null ? selectedRestaurant.getName() : "Seaside Lunch")
+                    .type("RESTAURANT")
+                    .activityId(selectedRestaurant != null ? selectedRestaurant.getId() : null)
+                    .lat(selectedRestaurant != null ? selectedRestaurant.getLatitude() : 15.5562)
+                    .lng(selectedRestaurant != null ? selectedRestaurant.getLongitude() : 73.7512)
+                    .build());
+            
+            activities.add(ProposedActivity.builder()
+                    .time("03:30 PM")
+                    .name("Scenic Beach Walk & Relaxation")
+                    .type("LEISURE")
+                    .lat(15.5992)
+                    .lng(73.7431)
+                    .build());
+            
+            activities.add(ProposedActivity.builder()
+                    .time("06:30 PM")
+                    .name(selectedEvent != null ? selectedEvent.getName() : "Sunset Cruise")
+                    .type("EVENT")
+                    .activityId(selectedEvent != null ? selectedEvent.getId() : null)
+                    .lat(selectedEvent != null ? selectedEvent.getLatitude() : 15.5540)
+                    .lng(selectedEvent != null ? selectedEvent.getLongitude() : 73.7562)
+                    .build());
 
             proposal = ItineraryProposalDto.builder()
                     .title("Relaxing afternoon in Goa")
@@ -130,31 +203,9 @@ public class ChatConciergeService {
                     .build();
 
         } else if (queryLower.contains("weather")) {
-            responseText = "The weather in Goa is currently 28°C with 65% humidity and a gentle breeze. Perfect for outdoor beach activities! No rain alerts for the next 6 hours.";
+            responseText = "The weather in your current region is clear and pleasant, averaging 28°C. Perfect for dining out tonight!";
         } else {
-            responseText = "I'm your ConciergeIQ assistant. Tell me what type of activity you are in the mood for (e.g., 'I want a relaxing afternoon' or 'suggest seafood restaurants nearby'), and I'll build a tailored itinerary for you!";
-        }
-
-        // Call OpenAI model if key is provided and not "demo"
-        if (apiKey != null && !apiKey.equals("demo") && !apiKey.isEmpty()) {
-            try {
-                ChatLanguageModel chatModel = OpenAiChatModel.builder()
-                        .apiKey(apiKey)
-                        .modelName(modelName)
-                        .temperature(0.7)
-                        .build();
-
-                String systemPrompt = "You are a luxury AI concierge for ConciergeIQ. Recommend spots and structure responses clearly. Current user preferences: "
-                        + (profile != null ? profile.getInterests().toString() : "None");
-                
-                String modelResponse = chatModel.generate(systemPrompt + "\nUser asks: " + message);
-                if (modelResponse != null && !modelResponse.trim().isEmpty()) {
-                    responseText = modelResponse;
-                }
-            } catch (Exception e) {
-                logger.error("Error invoking OpenAI chat model: {}", e.getMessage());
-                // Fallback to rule-based responseText
-            }
+            responseText = "I'm your ConciergeIQ travel assistant. Let me know what location and types of activities you want to plan (e.g. 'Plan dinner in Ravulapalem' or 'Suggest beach walks in Goa').";
         }
 
         // Save AI Response to Chat History
