@@ -30,11 +30,11 @@ public class ChatConciergeService {
     @Autowired
     private AgentOrchestrator agentOrchestrator;
 
-    public ChatResponseDto processMessage(String message, Long userId) {
+    public ChatResponseDto processMessage(String message, String currentLocation, Long userId) {
         logger.info("Processing message from user {}: {}", userId, message);
 
         // Execute dynamic LangGraph multi-agent orchestration workflow
-        AgentState state = agentOrchestrator.runWorkflow(message, userId);
+        AgentState state = agentOrchestrator.runWorkflow(message, currentLocation, userId);
 
         // Save User Message to database
         User user = userRepository.findById(userId).orElse(null);

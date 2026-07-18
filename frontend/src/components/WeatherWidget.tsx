@@ -6,7 +6,7 @@ interface WeatherWidgetProps {
   city?: string
 }
 
-export default function WeatherWidget({ city = 'Goa' }: WeatherWidgetProps) {
+export default function WeatherWidget({ city = 'Rajahmundry' }: WeatherWidgetProps) {
   const [temp, setTemp] = useState(28)
   const [condition, setCondition] = useState('Partly Cloudy')
   const [humidity, setHumidity] = useState(65)

@@ -11,4 +11,5 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ChatRequestDto {
     private String message;
+    private String currentLocation;
 }

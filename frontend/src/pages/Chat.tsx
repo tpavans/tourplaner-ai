@@ -45,6 +45,7 @@ export default function Chat() {
   const [agentLogs, setAgentLogs] = useState<string[]>([])
   const [showLogs, setShowLogs] = useState(true)
   const [bookingSuccess, setBookingSuccess] = useState('')
+  const [geolocatedCity, setGeolocatedCity] = useState('Rajahmundry')
   
   // Geolocation tracker
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
@@ -59,11 +60,25 @@ export default function Chat() {
           setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude })
         },
         () => {
-          setUserCoords({ lat: 15.5892, lng: 73.7381 })
+          setUserCoords({ lat: 17.0005, lng: 81.8040 }) // Default near Rajahmundry (not Goa)
         }
       )
     }
   }, [])
+
+  useEffect(() => {
+    if (userCoords) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${userCoords.lat}&lon=${userCoords.lng}&format=json`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.address) {
+            const city = data.address.city || data.address.town || data.address.suburb || data.address.village || 'Rajahmundry';
+            setGeolocatedCity(city);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [userCoords])
 
   useEffect(() => {
     // Load history
@@ -109,7 +124,7 @@ export default function Chat() {
     setAgentLogs([])
 
     try {
-      const res = await API.post('/chat', { message: userMsg })
+      const res = await API.post('/chat', { message: userMsg, currentLocation: geolocatedCity })
       const data = res.data
 
       setMessages((prev) => [...prev, { role: 'ASSISTANT', message: data.responseMessage }])

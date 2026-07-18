@@ -34,7 +34,11 @@ public class ChatController {
 
     @PostMapping
     public ResponseEntity<ChatResponseDto> sendMessage(@RequestBody ChatRequestDto request) {
-        return ResponseEntity.ok(chatConciergeService.processMessage(request.getMessage(), getCurrentUserId()));
+        return ResponseEntity.ok(chatConciergeService.processMessage(
+                request.getMessage(), 
+                request.getCurrentLocation(), 
+                getCurrentUserId()
+        ));
     }
 
     @GetMapping("/history")

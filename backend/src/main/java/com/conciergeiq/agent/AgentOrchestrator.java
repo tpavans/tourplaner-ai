@@ -21,10 +21,12 @@ public class AgentOrchestrator {
     @Autowired
     private BookingAgent bookingAgent;
 
-    public AgentState runWorkflow(String query, Long userId) {
+    public AgentState runWorkflow(String query, String currentLocation, Long userId) {
+        String defaultLoc = (currentLocation != null && !currentLocation.isEmpty()) ? currentLocation : "Rajahmundry";
         AgentState state = AgentState.builder()
                 .userQuery(query)
                 .userId(userId)
+                .location(defaultLoc)
                 .build();
 
         state.addLog("Orchestrator", "Initializing multi-agent cooperative pipeline...");

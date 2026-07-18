@@ -21,15 +21,16 @@ public class InputAgent {
                 String prompt = String.format(
                     "Analyze this travel request: \"%s\". " +
                     "Extract: " +
-                    "1. Target city name (if none mentioned, return 'goa'). " +
+                    "1. Target city name (if none mentioned, return '%s'). " +
                     "2. Budget limit (digits only, e.g. 1000. If none, return '1000'). " +
                     "Format your answer exactly like: CITY: <city>, BUDGET: <budget>", 
-                    state.getUserQuery()
+                    state.getUserQuery(),
+                    state.getLocation()
                 );
                 
                 String response = chatModel.generate(prompt);
                 
-                String extractedCity = "goa";
+                String extractedCity = state.getLocation();
                 int extractedBudget = 1000;
                 
                 int cityIndex = response.indexOf("CITY:");
@@ -59,8 +60,9 @@ public class InputAgent {
                 state.setLocation(location);
                 state.addLog("InputAgent", "Extracted Target Destination: " + location);
             } else {
-                state.setLocation("goa"); // Default
-                state.addLog("InputAgent", "No destination specified, defaulted to Goa");
+                // Keep pre-seeded dynamic location
+                state.setLocation(state.getLocation());
+                state.addLog("InputAgent", "No destination specified, defaulted to: " + state.getLocation());
             }
 
             // Extract budget
