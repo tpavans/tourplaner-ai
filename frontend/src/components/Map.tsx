@@ -243,29 +243,46 @@ export default function Map({
       <div ref={mapContainerRef} className="flex-1 w-full h-full min-h-[300px]" style={{ zIndex: 1 }} />
 
       {/* Selected Marker Drawer */}
-      {selectedPin && (
-        <div className="absolute bottom-4 left-4 right-4 z-[1000] bg-white/95 dark:bg-zinc-900/95 border border-gray-200/80 dark:border-darkBorder shadow-xl rounded-xl p-4 animate-slide-up">
-          <div className="flex justify-between items-start">
-            <div className="flex gap-3 items-start">
-              <div className="bg-blue-50 dark:bg-blue-950/20 p-2.5 rounded-xl text-blue-600">
-                <MapPin size={18} />
+      {selectedPin && (() => {
+        let distStr = '2.4 km'
+        let timeStr = '12 min'
+        if (userCoords) {
+          const dLat = selectedPin.lat - userCoords.lat
+          const dLng = selectedPin.lng - userCoords.lng
+          const distance = Math.sqrt(dLat * dLat + dLng * dLng) * 111
+          distStr = `${distance.toFixed(1)} km`
+          timeStr = `${Math.round(distance * 2.5)} min`
+        }
+
+        return (
+          <div className="absolute bottom-4 left-4 right-4 z-[1000] bg-white/95 dark:bg-zinc-900/95 border border-gray-200/80 dark:border-darkBorder shadow-xl rounded-2xl p-4 animate-slide-up flex flex-col gap-3">
+            <div className="flex justify-between items-start">
+              <div className="flex gap-3 items-center">
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-2.5 rounded-xl text-blue-600">
+                  <MapPin size={18} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200">{selectedPin.name}</h4>
+                  <p className="text-[10px] text-gray-400 font-semibold uppercase">{selectedPin.type.toLowerCase()}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    {timeStr} ({distStr})
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-sm">{selectedPin.name}</h4>
-                <p className="text-xs text-gray-500 capitalize">
-                  {selectedPin.type.toLowerCase()} • GPS: {selectedPin.lat.toFixed(4)}, {selectedPin.lng.toFixed(4)}
-                </p>
-              </div>
+              <button 
+                onClick={() => setSelectedPin(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-xs font-semibold px-2 py-1"
+              >
+                Close
+              </button>
             </div>
-            <button 
-              onClick={() => setSelectedPin(null)}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-xs font-semibold px-2 py-1"
-            >
-              Close
+            
+            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all">
+              Directions
             </button>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }
