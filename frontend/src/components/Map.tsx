@@ -178,6 +178,11 @@ export default function Map({
         pathCoords.push([pin.lat, pin.lng])
       })
 
+      // Return back to user starting coordinates (Round-trip Closed Loop)
+      if (userCoords) {
+        pathCoords.push([userCoords.lat, userCoords.lng])
+      }
+
       if (pathCoords.length >= 2) {
         // Draw routing line
         const polyline = L.polyline(pathCoords, {

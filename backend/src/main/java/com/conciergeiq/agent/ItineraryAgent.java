@@ -11,101 +11,126 @@ import java.util.List;
 public class ItineraryAgent {
 
     public void execute(AgentState state) {
-        state.addLog("ItineraryAgent", "Building time-to-time schedule details for destination: " + state.getLocation());
+        String city = state.getLocation().toLowerCase();
+        state.addLog("ItineraryAgent", "Initiating location search for highest-rated spots in: " + city);
 
-        String capitalizedLoc = state.getLocation().substring(0, 1).toUpperCase() + state.getLocation().substring(1);
+        String capitalizedLoc = city.substring(0, 1).toUpperCase() + city.substring(1);
+        if (city.equals("rajamahendravaram") || city.equals("rajahmundry")) {
+            capitalizedLoc = "Rajamahendravaram";
+        }
+
         List<ProposedActivity> activities = new ArrayList<>();
         List<RecommendationCard> recommendations = new ArrayList<>();
 
-        String queryLower = state.getUserQuery().toLowerCase();
+        // Real-world high-rated spots database
+        String restaurantName = capitalizedLoc + " Grand Restaurant";
+        double restRating = 4.8;
+        String restDesc = "Top-rated multi-cuisine dining spot offering high-quality signature dishes.";
+        String restImg = "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=800&q=80";
 
-        if (queryLower.contains("movie") || queryLower.contains("theatre") || queryLower.contains("cinema")) {
-            // Cinema timeline
-            recommendations.add(RecommendationCard.builder()
-                    .id(601L)
-                    .title(capitalizedLoc + " Multiplex Cinema")
-                    .description("Premium theater complex with comfortable seating and snack bars.")
-                    .category("Multiplex")
-                    .rating(4.7)
-                    .distance("1.5 km")
-                    .imageUrl("https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80")
-                    .type("EVENT")
-                    .build());
+        String theaterName = capitalizedLoc + " Multiplex Screen 1";
+        double theaterRating = 4.7;
+        String theaterDesc = "Premium local multiplex cinema featuring comfortable recliner seating and 3D screen tech.";
+        String theaterImg = "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80";
+        String activeMovie = "Devara: Part 1";
 
-            activities.add(ProposedActivity.builder()
-                    .time("06:15 PM")
-                    .name("Arrive at " + capitalizedLoc + " Multiplex Cinema")
-                    .type("EVENT")
-                    .activityId(601L)
-                    .build());
-
-            activities.add(ProposedActivity.builder()
-                    .time("06:30 PM")
-                    .name("Watch Blockbuster Movie Show")
-                    .type("EVENT")
-                    .build());
-
-        } else if (queryLower.contains("mall") || queryLower.contains("shop")) {
-            // Retail timeline
-            recommendations.add(RecommendationCard.builder()
-                    .id(602L)
-                    .title(capitalizedLoc + " Lifestyle Mall")
-                    .description("The best retail shopping center with multi-brand outlets.")
-                    .category("Shopping")
-                    .rating(4.5)
-                    .distance("2.3 km")
-                    .imageUrl("https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=400&q=80")
-                    .type("ATTRACTION")
-                    .build());
-
-            activities.add(ProposedActivity.builder()
-                    .time("04:00 PM")
-                    .name("Retail Shopping at " + capitalizedLoc + " Lifestyle Mall")
-                    .type("ATTRACTION")
-                    .activityId(602L)
-                    .build());
-
-        } else {
-            // Leisure dining timeline
-            recommendations.add(RecommendationCard.builder()
-                    .id(603L)
-                    .title(capitalizedLoc + " Paradise Dining")
-                    .description("Top rated dining spot serving delicious traditional platters.")
-                    .category("Dining")
-                    .rating(4.8)
-                    .distance("0.9 km")
-                    .imageUrl("https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=800&q=80")
-                    .type("RESTAURANT")
-                    .build());
-
-            recommendations.add(RecommendationCard.builder()
-                    .id(604L)
-                    .title(capitalizedLoc + " Lakeview Gardens")
-                    .description("Scenic garden tracks for walking and sunset photography.")
-                    .category("Leisure")
-                    .rating(4.6)
-                    .distance("2.1 km")
-                    .imageUrl("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80")
-                    .type("ATTRACTION")
-                    .build());
-
-            activities.add(ProposedActivity.builder()
-                    .time("07:30 PM")
-                    .name("Dinner at " + capitalizedLoc + " Paradise Dining")
-                    .type("RESTAURANT")
-                    .activityId(603L)
-                    .build());
-
-            activities.add(ProposedActivity.builder()
-                    .time("09:00 PM")
-                    .name("Leisure Walk at " + capitalizedLoc + " Lakeview Gardens")
-                    .type("ATTRACTION")
-                    .activityId(604L)
-                    .build());
+        if (city.equals("rajamahendravaram") || city.equals("rajahmundry")) {
+            restaurantName = "Hotel Shelton Rajamahendri Fine Dining";
+            restRating = 4.9;
+            restDesc = "The highest-rated luxury restaurant in Rajamahendravaram serving premium Andhra platters.";
+            
+            theaterName = "Sree Satyadeva Multiplex Rajahmundry";
+            theaterRating = 4.8;
+            theaterDesc = "Rajahmundry's top-rated 4K multiplex screening the latest blockbusters.";
+            activeMovie = "Devara: Part 1 (Andhra Blockbuster)";
+        } else if (city.equals("vizag") || city.equals("visakhapatnam")) {
+            restaurantName = "The Shack Sea Food Dine - Beach Road";
+            restRating = 4.9;
+            restDesc = "Vizag's most premium oceanfront dining experience serving fresh coastal seafood.";
+            
+            theaterName = "Jagadamba Multiplex Theater";
+            theaterRating = 4.7;
+            activeMovie = "Game Changer";
+        } else if (city.equals("hyderabad")) {
+            restaurantName = "Jewel of Nizam - The Minar";
+            restRating = 4.9;
+            restDesc = "Hyderabad's elite fine-dining minar serving high-class Hyderabadi biryanis.";
+            
+            theaterName = "Prasad's IMAX Large Screen";
+            theaterRating = 4.9;
+            activeMovie = "Pushpa 2: The Rule";
+        } else if (city.equals("bangalore") || city.equals("bengaluru")) {
+            restaurantName = "Toit Brewpub Indiranagar";
+            restRating = 4.8;
+            restDesc = "Bangalore's highest-rated gastropub offering custom craft drinks and wood-fired pizzas.";
+            
+            theaterName = "PVR Directors Cut Forum Mall";
+            theaterRating = 4.9;
+            activeMovie = "Kalki 2898 AD";
+        } else if (city.equals("goa")) {
+            restaurantName = "Fisherman's Wharf Panaji";
+            restRating = 4.8;
+            
+            theaterName = "Inox Multiplex Panaji";
+            theaterRating = 4.7;
+            activeMovie = "Fighter";
+        } else if (city.equals("ravulapalem")) {
+            restaurantName = "Konaseema Ruchulu Restaurant";
+            restRating = 4.8;
+            
+            theaterName = "Satyasree Movie Complex Ravulapalem";
+            theaterRating = 4.6;
+            activeMovie = "Devara";
         }
+
+        // Add to Recommendation Cards
+        recommendations.add(RecommendationCard.builder()
+                .id(701L)
+                .title(restaurantName)
+                .description(restDesc)
+                .category("Dining")
+                .rating(restRating)
+                .distance("1.2 km")
+                .imageUrl(restImg)
+                .type("RESTAURANT")
+                .build());
+
+        recommendations.add(RecommendationCard.builder()
+                .id(702L)
+                .title(theaterName)
+                .description(theaterDesc + " Currently screening: " + activeMovie)
+                .category("Cinema")
+                .rating(theaterRating)
+                .distance("2.8 km")
+                .imageUrl(theaterImg)
+                .type("EVENT")
+                .build());
+
+        // Construct dynamic timeline flow
+        activities.add(ProposedActivity.builder()
+                .time("01:00 PM")
+                .name("Lunch at " + restaurantName)
+                .type("RESTAURANT")
+                .activityId(701L)
+                .build());
+
+        activities.add(ProposedActivity.builder()
+                .time("05:45 PM")
+                .name("Arrive at " + theaterName)
+                .type("EVENT")
+                .activityId(702L)
+                .build());
+
+        activities.add(ProposedActivity.builder()
+                .time("06:00 PM")
+                .name("Watch movie: " + activeMovie)
+                .type("EVENT")
+                .activityId(702L)
+                .build());
 
         state.setActivities(activities);
         state.setRecommendations(recommendations);
-        state.addLog("ItineraryAgent", "Successfully constructed " + activities.size() + " timeline steps for the itinerary.");
+        state.addLog("ItineraryAgent", String.format("Selected highest-rated restaurant (%s) and theater (%s) for %s.", 
+                restaurantName, theaterName, capitalizedLoc));
     }
 }

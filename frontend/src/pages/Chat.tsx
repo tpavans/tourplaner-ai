@@ -278,33 +278,7 @@ export default function Chat() {
             </div>
           )}
 
-          {/* Collapsible LangGraph Agent Reasoning Console */}
-          {agentLogs.length > 0 && (
-            <div className="pl-11 mt-3">
-              <div className="bg-zinc-950 text-green-400 border border-zinc-800 rounded-xl overflow-hidden shadow-md">
-                <button
-                  onClick={() => setShowLogs(!showLogs)}
-                  className="w-full bg-zinc-900 px-4 py-2 text-xs font-bold font-mono flex items-center justify-between border-b border-zinc-850 text-zinc-300"
-                >
-                  <span className="flex items-center gap-2">
-                    <Terminal size={14} className="text-green-500 animate-pulse" />
-                    LANGGRAPH AGENT REASONING CONSOLE
-                  </span>
-                  {showLogs ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </button>
-                
-                {showLogs && (
-                  <div className="p-3 space-y-1 font-mono text-[10px] max-h-40 overflow-y-auto leading-relaxed">
-                    {agentLogs.map((log, index) => (
-                      <div key={index}>
-                        <span className="text-zinc-500">&gt;</span> {log}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+
 
           {/* Proposal approval actions */}
           {proposal && (
