@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Send, Bot, User, CheckCircle, HelpCircle, Calendar, Navigation, MapPin } from 'lucide-react'
+import { Send, Bot, CheckCircle, Navigation, Terminal, ChevronDown, ChevronUp } from 'lucide-react'
 import API from '../services/api'
 import Map from '../components/Map'
 
@@ -42,6 +42,8 @@ export default function Chat() {
   const [loading, setLoading] = useState(false)
   const [cards, setCards] = useState<CardData[]>([])
   const [proposal, setProposal] = useState<ItineraryProposal | null>(null)
+  const [agentLogs, setAgentLogs] = useState<string[]>([])
+  const [showLogs, setShowLogs] = useState(true)
   const [bookingSuccess, setBookingSuccess] = useState('')
   
   // Geolocation tracker
@@ -57,7 +59,6 @@ export default function Chat() {
           setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude })
         },
         () => {
-          // Default near Vagator, Goa
           setUserCoords({ lat: 15.5892, lng: 73.7381 })
         }
       )
@@ -77,7 +78,7 @@ export default function Chat() {
           setMessages([
             {
               role: 'ASSISTANT',
-              message: "Hello! I am your ConciergeIQ travel orchestrator. Let me know what you'd like to do, or try asking:\n• 'plan dinner in ravulapalem budget 1000'\n• 'suggest beach events in Goa'",
+              message: "Hello! I am your ConciergeIQ travel orchestrator. Let me know what you'd like to do, or try asking:\n• 'plan dinner in ravulapalem budget 1000'\n• 'suggest movie theaters in Vizag'",
             },
           ])
         }
@@ -105,6 +106,7 @@ export default function Chat() {
     setMessages((prev) => [...prev, { role: 'USER', message: userMsg }])
     setLoading(true)
     setBookingSuccess('')
+    setAgentLogs([])
 
     try {
       const res = await API.post('/chat', { message: userMsg })
@@ -122,6 +124,10 @@ export default function Chat() {
         setProposal(data.proposedItinerary)
       } else {
         setProposal(null)
+      }
+
+      if (data.agentLogs) {
+        setAgentLogs(data.agentLogs)
       }
     } catch {
       setMessages((prev) => [
@@ -152,7 +158,6 @@ export default function Chat() {
     }
   }
 
-  // Map activities coordinates to pins for the interactive Map
   const getMapPins = () => {
     if (!proposal || !proposal.activities) return []
     return proposal.activities.map((act, i) => ({
@@ -164,7 +169,6 @@ export default function Chat() {
     }))
   }
 
-  // Calculate drive legs between points for proposal
   const getProposalLegs = () => {
     const legs: { from: string; to: string; distance: string; duration: string }[] = []
     const pins = getMapPins()
@@ -179,7 +183,7 @@ export default function Chat() {
         const dLat = pin.lat - prevPoint.lat
         const dLng = pin.lng - prevPoint.lng
         const distance = Math.sqrt(dLat * dLat + dLng * dLng) * 111
-        const durationMin = Math.round(distance * 2)
+        const durationMin = Math.round(distance * 2.5)
         legs.push({
           from: prevPoint.name,
           to: pin.name,
@@ -215,7 +219,7 @@ export default function Chat() {
           </div>
           <div>
             <h3 className="font-bold text-sm">AI Concierge</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Online • Orchestrates locations, schedules & tables</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Online • Powered by LangGraph Multi-Agent Orchestrator</p>
           </div>
         </div>
 
@@ -250,7 +254,7 @@ export default function Chat() {
             </div>
           ))}
 
-          {/* Dynamic Recommendations Cards inside chat feed */}
+          {/* Dynamic Recommendations Cards */}
           {cards.length > 0 && (
             <div className="pl-11 grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
               {cards.map((card) => (
@@ -274,7 +278,35 @@ export default function Chat() {
             </div>
           )}
 
-          {/* Proposal approval actions inside chat feed */}
+          {/* Collapsible LangGraph Agent Reasoning Console */}
+          {agentLogs.length > 0 && (
+            <div className="pl-11 mt-3">
+              <div className="bg-zinc-950 text-green-400 border border-zinc-800 rounded-xl overflow-hidden shadow-md">
+                <button
+                  onClick={() => setShowLogs(!showLogs)}
+                  className="w-full bg-zinc-900 px-4 py-2 text-xs font-bold font-mono flex items-center justify-between border-b border-zinc-850 text-zinc-300"
+                >
+                  <span className="flex items-center gap-2">
+                    <Terminal size={14} className="text-green-500 animate-pulse" />
+                    LANGGRAPH AGENT REASONING CONSOLE
+                  </span>
+                  {showLogs ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+                
+                {showLogs && (
+                  <div className="p-3 space-y-1 font-mono text-[10px] max-h-40 overflow-y-auto leading-relaxed">
+                    {agentLogs.map((log, index) => (
+                      <div key={index}>
+                        <span className="text-zinc-500">&gt;</span> {log}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Proposal approval actions */}
           {proposal && (
             <div className="pl-11 mt-4">
               <div className="bg-indigo-50/50 dark:bg-brand-950/10 border border-indigo-200 dark:border-brand-900 rounded-2xl p-4 flex flex-col gap-3 max-w-xl">
@@ -319,7 +351,7 @@ export default function Chat() {
         <form onSubmit={handleSend} className="border-t border-gray-200 dark:border-darkBorder p-4 bg-white dark:bg-zinc-900 flex gap-2">
           <input
             type="text"
-            placeholder="Plan dinner in Ravulapalem or ask: 'I want a relaxing afternoon'"
+            placeholder="Type your trip request (e.g. 'plan cinema evening in Vizag')"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             className="flex-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200/80 dark:border-darkBorder rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500"
@@ -334,7 +366,7 @@ export default function Chat() {
 
       </div>
 
-      {/* Right Column: Dynamic Map & Time-to-Time Proposal steps (lg:col-span-5) */}
+      {/* Right Column: Google Maps & Time-to-Time Proposal steps (lg:col-span-5) */}
       <div className="lg:col-span-5 flex flex-col gap-4 h-full overflow-y-auto">
         <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-4 shadow-sm flex flex-col gap-3 flex-1 min-h-[300px]">
           <h3 className="font-bold text-sm flex items-center gap-1.5">
@@ -366,7 +398,7 @@ export default function Chat() {
                   <div>
                     <span className="font-bold text-indigo-600 dark:text-brand-400">{act.time}</span>
                     <h5 className="font-bold text-gray-800 dark:text-gray-200">{act.name}</h5>
-                    <span className="text-[9px] uppercase font-bold text-gray-450">{act.type.toLowerCase()}</span>
+                    <span className="text-[9px] uppercase font-bold text-gray-450">{(act.type || 'ATTRACTION').toLowerCase()}</span>
                   </div>
                 </div>
               ))}
@@ -388,7 +420,7 @@ export default function Chat() {
         ) : (
           <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-6 text-center text-xs text-gray-400 flex flex-col items-center justify-center gap-2 flex-1">
             <Bot size={28} className="text-indigo-400 animate-pulse" />
-            <p>Ask the AI Concierge to plan an itinerary (e.g. "plan dinner in ravulapalem") to view the time-to-time route and live map coordinates.</p>
+            <p>Ask the AI Concierge to plan an itinerary to view the Google Maps routing and live coordinates.</p>
           </div>
         )}
       </div>

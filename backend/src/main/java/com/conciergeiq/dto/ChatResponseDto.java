@@ -17,6 +17,7 @@ public class ChatResponseDto {
     private String responseMessage;
     private List<RecommendationCard> recommendations;
     private ItineraryProposalDto proposedItinerary;
+    private List<String> agentLogs;
 
     @Getter
     @Setter
