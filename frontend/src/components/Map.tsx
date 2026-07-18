@@ -75,8 +75,13 @@ export default function Map({
       attributionControl: false
     }).setView([centerLat, centerLng], 13)
 
-    // Load official Google Maps standard road tiles
-    L.tileLayer('https://mt1.googleusercontent.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+    // Load official Google Maps standard road tiles with API Key
+    const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+    const tileUrl = googleKey 
+      ? `https://mt1.googleusercontent.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=${googleKey}`
+      : 'https://mt1.googleusercontent.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+
+    L.tileLayer(tileUrl, {
       maxZoom: 20,
       subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
     }).addTo(map)

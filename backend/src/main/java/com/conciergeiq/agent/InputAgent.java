@@ -1,33 +1,77 @@
 package com.conciergeiq.agent;
 
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InputAgent {
 
+    @Autowired(required = false)
+    private ChatLanguageModel chatModel;
+
     public void execute(AgentState state) {
         state.addLog("InputAgent", "Analyzing user prompt: " + state.getUserQuery());
         
         String queryLower = state.getUserQuery().toLowerCase();
-        
-        // Extract location
-        String location = parseLocation(queryLower);
-        if (location != null) {
-            state.setLocation(location);
-            state.addLog("InputAgent", "Extracted Target Destination: " + location);
-        } else {
-            state.setLocation("goa"); // Default
-            state.addLog("InputAgent", "No destination specified, defaulted to Goa");
+        boolean processedByAI = false;
+
+        if (chatModel != null) {
+            try {
+                String prompt = String.format(
+                    "Analyze this travel request: \"%s\". " +
+                    "Extract: " +
+                    "1. Target city name (if none mentioned, return 'goa'). " +
+                    "2. Budget limit (digits only, e.g. 1000. If none, return '1000'). " +
+                    "Format your answer exactly like: CITY: <city>, BUDGET: <budget>", 
+                    state.getUserQuery()
+                );
+                
+                String response = chatModel.generate(prompt);
+                
+                String extractedCity = "goa";
+                int extractedBudget = 1000;
+                
+                int cityIndex = response.indexOf("CITY:");
+                int budgetIndex = response.indexOf("BUDGET:");
+                
+                if (cityIndex != -1 && budgetIndex != -1) {
+                    extractedCity = response.substring(cityIndex + 5, budgetIndex).replace(",", "").trim().toLowerCase();
+                    String budgetStr = response.substring(budgetIndex + 7).trim().replaceAll("[^0-9]", "");
+                    if (!budgetStr.isEmpty()) {
+                        extractedBudget = Integer.parseInt(budgetStr);
+                    }
+                    
+                    state.setLocation(extractedCity);
+                    state.setBudget(extractedBudget);
+                    processedByAI = true;
+                    state.addLog("InputAgent", String.format("[Gemini AI Extract] Destination: %s, Budget: ₹%d", extractedCity, extractedBudget));
+                }
+            } catch (Exception e) {
+                state.addLog("InputAgent", "Gemini extraction failed, falling back to local rules. Error: " + e.getMessage());
+            }
         }
 
-        // Extract budget
-        Integer budget = parseBudget(queryLower);
-        if (budget != null) {
-            state.setBudget(budget);
-            state.addLog("InputAgent", "Extracted Budget Constraint: ₹" + budget);
-        } else {
-            state.setBudget(1000); // Default
-            state.addLog("InputAgent", "No budget limit specified, assumed default ₹1000");
+        if (!processedByAI) {
+            // Extract location
+            String location = parseLocation(queryLower);
+            if (location != null) {
+                state.setLocation(location);
+                state.addLog("InputAgent", "Extracted Target Destination: " + location);
+            } else {
+                state.setLocation("goa"); // Default
+                state.addLog("InputAgent", "No destination specified, defaulted to Goa");
+            }
+
+            // Extract budget
+            Integer budget = parseBudget(queryLower);
+            if (budget != null) {
+                state.setBudget(budget);
+                state.addLog("InputAgent", "Extracted Budget Constraint: ₹" + budget);
+            } else {
+                state.setBudget(1000); // Default
+                state.addLog("InputAgent", "No budget limit specified, assumed default ₹1000");
+            }
         }
     }
 
@@ -49,6 +93,7 @@ public class InputAgent {
             if (word.equalsIgnoreCase("ravulapalem") || 
                 word.equalsIgnoreCase("goa") || 
                 word.equalsIgnoreCase("rajahmundry") || 
+                word.equalsIgnoreCase("rajamahendravaram") || 
                 word.equalsIgnoreCase("vizag") || 
                 word.equalsIgnoreCase("visakhapatnam") ||
                 word.equalsIgnoreCase("hyderabad") ||

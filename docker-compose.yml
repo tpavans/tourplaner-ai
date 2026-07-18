@@ -41,6 +41,8 @@ services:
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
       JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL_NAME: ${OPENAI_MODEL_NAME}
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,6 +54,9 @@ services:
     container_name: conciergeiq-frontend
     ports:
       - "3000:80"
+    environment:
+      VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY}
+      VITE_OPENWEATHER_API_KEY: ${VITE_OPENWEATHER_API_KEY}
     depends_on:
       - backend
 
