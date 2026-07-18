@@ -140,12 +140,28 @@ export default function Map({
       if (type === 'EVENT') color = '#a855f7' // Purple (Leisure/Events)
       if (type === 'MALL' || type === 'CINEMA') color = '#eab308' // Gold (Shopping/Entertainment)
       if (type === 'USER') color = '#10b981' // Green (Live location)
+      if (type === 'HOSPITAL') color = '#f43f5e' // Rose/Red (Medical Emergency)
+
+      let iconSvg = '';
+      if (type === 'RESTAURANT') {
+        iconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>`;
+      } else if (type === 'EVENT' || type === 'CINEMA') {
+        iconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>`;
+      } else if (type === 'HOTEL') {
+        iconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>`;
+      } else if (type === 'HOSPITAL') {
+        iconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+      } else if (type === 'USER') {
+        iconSvg = `<div style="width: 8px; height: 8px; border-radius: 50%; background-color: white;"></div>`;
+      } else {
+        iconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>`;
+      }
 
       const html = `
         <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">
           <div style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background-color: ${color}; opacity: 0.15; transform: scale(1.4); animation: pulse 2s infinite;"></div>
-          <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background-color: ${color}; border: 2px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
-            ${numberLabel !== undefined ? `<span style="color: white; font-size: 11px; font-weight: 800;">${numberLabel}</span>` : ''}
+          <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background-color: ${color}; border: 2.5px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.35);">
+            ${iconSvg}
           </div>
         </div>
       `
@@ -205,9 +221,12 @@ export default function Map({
       }
 
       if (pathCoords.length >= 2) {
+        const isEmergency = pins.some(p => p.type === 'HOSPITAL');
+        const routeColor = isEmergency ? '#ef4444' : '#3b82f6';
+
         // Draw routing line
         const polyline = L.polyline(pathCoords, {
-          color: '#3b82f6',
+          color: routeColor,
           weight: 5,
           opacity: 0.85,
           lineJoin: 'round'

@@ -1,22 +1,48 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import WeatherWidget from '../components/WeatherWidget'
 import { useAuth } from '../hooks/useAuth'
-import { Compass, Calendar, ArrowRight, Star, MapPin } from 'lucide-react'
+import { Calendar, ArrowRight, Star, MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import API from '../services/api'
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const [activeDestination, setActiveDestination] = useState('Goa, India')
+  const [activeCity, setActiveCity] = useState('Goa')
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([
+    { title: 'Seaside Grill Restaurant', time: 'Today, 07:30 PM', status: 'Confirmed' },
+    { title: 'Sunset Cruise', time: 'Today, 06:30 PM', status: 'Confirmed' },
+  ])
+
+  useEffect(() => {
+    // Load trips to display live destination weather and details
+    API.get('/trips')
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          const latestTrip = res.data[0]
+          setActiveDestination(latestTrip.destination)
+          const cityOnly = latestTrip.destination.split(',')[0].trim()
+          setActiveCity(cityOnly)
+
+          // Load first two schedules as upcoming preview
+          if (latestTrip.schedules && latestTrip.schedules.length > 0) {
+            const preview = latestTrip.schedules.slice(0, 2).map((s: any) => ({
+              title: s.activityName,
+              time: s.scheduledTime,
+              status: s.status || 'Confirmed'
+            }))
+            setUpcomingBookings(preview)
+          }
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const highlights = [
     { name: 'Baga Beach', time: '10:00 AM', rating: 4.8, img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80' },
     { name: 'Spice Garden Walk', time: '02:00 PM', rating: 4.6, img: 'https://images.unsplash.com/photo-1599940824399-b87987ceb72a?auto=format&fit=crop&w=400&q=80' },
     { name: 'Sunset Cruise', time: '06:30 PM', rating: 4.9, img: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=400&q=80' },
-  ]
-
-  const upcomingBookings = [
-    { title: 'Seaside Grill Restaurant', time: 'Today, 07:30 PM', status: 'Confirmed' },
-    { title: 'Sunset Cruise', time: 'Today, 06:30 PM', status: 'Confirmed' },
   ]
 
   return (
@@ -33,16 +59,16 @@ export default function Dashboard() {
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
           <MapPin size={16} className="text-indigo-600 dark:text-brand-400" />
-          Enjoy your stay in <span className="font-semibold text-gray-800 dark:text-white">Goa, India</span>
+          Enjoy your stay in <span className="font-semibold text-gray-800 dark:text-white">{activeDestination}</span>
         </p>
       </div>
 
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Weather Column */}
+        {/* Dynamic Weather Column */}
         <div className="lg:col-span-1">
-          <WeatherWidget city="Goa" />
+          <WeatherWidget city={activeCity} />
         </div>
 
         {/* AI Quick Prompt CTA */}
@@ -98,10 +124,10 @@ export default function Dashboard() {
 
       {/* Bookings Overview Section */}
       <div className="flex flex-col gap-4">
-        <h3 className="text-lg font-bold tracking-tight">Upcoming Bookings</h3>
+        <h3 className="text-lg font-bold tracking-tight">Upcoming Bookings Preview</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {upcomingBookings.map((booking) => (
-            <div key={booking.title} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-4 flex justify-between items-center shadow-sm">
+          {upcomingBookings.map((booking, idx) => (
+            <div key={idx} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-4 flex justify-between items-center shadow-sm">
               <div className="flex flex-col gap-1">
                 <h4 className="font-semibold text-sm">{booking.title}</h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">

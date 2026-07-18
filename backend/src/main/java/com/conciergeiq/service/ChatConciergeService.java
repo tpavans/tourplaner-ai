@@ -2,6 +2,7 @@ package com.conciergeiq.service;
 
 import com.conciergeiq.dto.ChatResponseDto;
 import com.conciergeiq.dto.ChatResponseDto.ItineraryProposalDto;
+import com.conciergeiq.dto.ChatResponseDto.ProposedActivity;
 import com.conciergeiq.agent.AgentOrchestrator;
 import com.conciergeiq.agent.AgentState;
 import com.conciergeiq.entity.ChatHistory;
@@ -32,7 +33,7 @@ public class ChatConciergeService {
     public ChatResponseDto processMessage(String message, Long userId) {
         logger.info("Processing message from user {}: {}", userId, message);
 
-        // Run LangGraph multi-agent cooperative pipeline
+        // Execute dynamic LangGraph multi-agent orchestration workflow
         AgentState state = agentOrchestrator.runWorkflow(message, userId);
 
         // Save User Message to database
@@ -46,8 +47,20 @@ public class ChatConciergeService {
         }
 
         String capitalizedLoc = state.getLocation().substring(0, 1).toUpperCase() + state.getLocation().substring(1);
-        String responseText = String.format("Hello! I have coordinated with my Planner, Itinerary, and Map agents to build a time-to-time itinerary for %s (Budget Limit: ₹%d) according to your preferences. The execution route and markers have been plotted on the live Google map.", 
-                capitalizedLoc, state.getBudget());
+        String responseText = "";
+
+        // Determine guide persona response text dynamically based on context
+        boolean isEmergency = message.toLowerCase().contains("emergency") || message.toLowerCase().contains("hospital") || 
+                              message.toLowerCase().contains("doctor") || message.toLowerCase().contains("accident") || 
+                              message.toLowerCase().contains("medical");
+
+        if (isEmergency) {
+            responseText = "🚨 I detected a medical emergency query. I have instantly bypassed standard sightseeing and activated my emergency medical protocol. I located the nearest high-rated trauma care and mapped the shortest traffic-free route. Please proceed to the emergency ward immediately; details are loaded on your live tracking map.";
+        } else if (state.getTripTitle().toLowerCase().contains("rain")) {
+            responseText = String.format("☔ Hello! I checked the live weather for %s and detected rain/showers. To keep you comfortable, I have dynamically modified your plan to focus on premium indoor activities, including an indoor multiplex movie and dining. Safe and dry! Let me know if you would like me to book it.", capitalizedLoc);
+        } else {
+            responseText = String.format("☀️ Hello! I am your travel concierge. I checked the weather in %s and it looks clear! I have mapped out a beautiful outdoor itinerary featuring a scenic sunset sightseeing tour followed by a fine dinner at a top-rated restaurant. Let me know if this looks good and I can book the tickets for you!", capitalizedLoc);
+        }
 
         // Save AI Response to Chat History
         if (user != null) {
