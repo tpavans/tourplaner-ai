@@ -48,40 +48,47 @@ export default function Timeline({ activities = [] }: TimelineProps) {
 
   return (
     <div className="relative border-l border-gray-200 dark:border-darkBorder ml-4 pl-6 space-y-8 py-2">
-      {items.map((activity, index) => (
-        <div key={index} className="relative group">
-          {/* Bullet Pin */}
-          <div className={`absolute left-[-35px] top-1.5 p-2 rounded-full border border-white dark:border-darkBg shadow-md flex items-center justify-center transition-transform group-hover:scale-110 ${getThemeColors(activity.type)}`}>
-            {getActivityIcon(activity.type)}
-          </div>
+      {items.map((activity, index) => {
+        const name = activity.name || (activity as any).activityName || 'Activity'
+        const time = activity.time || (activity as any).scheduledTime || '12:00 PM'
+        const type = activity.type || (activity as any).activityType || 'ATTRACTION'
+        const status = activity.status || (activity as any).status
 
-          {/* Time & Title Container */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-darkBorder p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-indigo-600 dark:text-brand-400 tracking-wider">
-                {activity.time}
-              </span>
-              <h4 className="font-bold text-sm text-gray-800 dark:text-gray-100">
-                {activity.name}
-              </h4>
-              <span className="text-[10px] uppercase font-bold tracking-wider opacity-65">
-                {activity.type.toLowerCase()}
-              </span>
+        return (
+          <div key={index} className="relative group">
+            {/* Bullet Pin */}
+            <div className={`absolute left-[-35px] top-1.5 p-2 rounded-full border border-white dark:border-darkBg shadow-md flex items-center justify-center transition-transform group-hover:scale-110 ${getThemeColors(type)}`}>
+              {getActivityIcon(type)}
             </div>
 
-            <div className="flex gap-2 self-end sm:self-center">
-              {activity.status && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300">
-                  {activity.status}
+            {/* Time & Title Container */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-darkBorder p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-bold text-indigo-600 dark:text-brand-400 tracking-wider">
+                  {time}
                 </span>
-              )}
-              <button className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-brand-400 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
-                <ArrowRight size={14} />
-              </button>
+                <h4 className="font-bold text-sm text-gray-800 dark:text-gray-100">
+                  {name}
+                </h4>
+                <span className="text-[10px] uppercase font-bold tracking-wider opacity-65">
+                  {type.toLowerCase()}
+                </span>
+              </div>
+
+              <div className="flex gap-2 self-end sm:self-center">
+                {status && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300">
+                    {status}
+                  </span>
+                )}
+                <button className="p-2 text-gray-400 hover:text-indigo-600 dark:hover:text-brand-400 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
+                  <ArrowRight size={14} />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
