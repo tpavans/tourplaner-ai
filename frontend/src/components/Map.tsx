@@ -33,9 +33,9 @@ export default function Map({
 
   // Dynamically load Leaflet CDN files
   useEffect(() => {
-    if (window.L) {
-      setLeafletLoaded(true)
-      return
+    if ((window as any).L) {
+      setLeafletLoaded(true);
+      return;
     }
 
     const cssLink = document.createElement('link')
@@ -69,7 +69,7 @@ export default function Map({
       centerLng = userCoords.lng
     }
 
-    const L = window.L
+    const L = (window as any).L
     const map = L.map(mapContainerRef.current, {
       zoomControl: false,
       attributionControl: false
@@ -99,7 +99,7 @@ export default function Map({
   useEffect(() => {
     if (!leafletLoaded || !mapInstanceRef.current) return
 
-    const L = window.L
+    const L = (window as any).L
     const map = mapInstanceRef.current
 
     // Clear old markers/popups
