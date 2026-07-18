@@ -16,7 +16,7 @@ export default function WeatherWidget({ city = 'Goa' }: WeatherWidgetProps) {
   const [alerts, setAlerts] = useState('No rain alerts for next 6 hours.')
 
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY || 'c54ae8e21c2805eb17bdb6a4e34a2940'
+    const apiKey = (import.meta as any).env.VITE_OPENWEATHER_API_KEY || 'c54ae8e21c2805eb17bdb6a4e34a2940'
     const cleanCity = city.replace(', India', '').trim()
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${cleanCity}&units=metric&appid=${apiKey}`
 

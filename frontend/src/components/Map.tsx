@@ -76,7 +76,7 @@ export default function Map({
     }).setView([centerLat, centerLng], 13)
 
     // Load official Google Maps standard road tiles with API Key
-    const googleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+    const googleKey = (import.meta as any).env.VITE_GOOGLE_MAPS_API_KEY || '';
     const tileUrl = googleKey 
       ? `https://mt1.googleusercontent.com/vt/lyrs=m&x={x}&y={y}&z={z}&key=${googleKey}`
       : 'https://mt1.googleusercontent.com/vt/lyrs=m&x={x}&y={y}&z={z}';
