@@ -35,7 +35,6 @@ public class Restaurant {
     @Column(nullable = false)
     private String city;
 
-    @Column(precision = 3, scale = 2)
     @Builder.Default
     private Double rating = 0.0;
 
