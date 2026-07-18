@@ -29,7 +29,7 @@ interface MapPinData {
   name: string
   lat: number
   lng: number
-  type: 'HOTEL' | 'RESTAURANT' | 'EVENT' | 'ATTRACTION' | 'MALL' | 'CINEMA'
+  type: 'HOTEL' | 'RESTAURANT' | 'EVENT' | 'ATTRACTION' | 'MALL' | 'CINEMA' | 'HOSPITAL'
 }
 
 export default function Planner() {
