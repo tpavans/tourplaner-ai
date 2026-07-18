@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { CalendarDays, Download, Printer, X, BedDouble, Utensils, Sparkles, CheckCircle, AlertCircle } from 'lucide-react'
+import { 
+  CalendarDays, Download, Printer, X, BedDouble, Utensils, Sparkles, 
+  CheckCircle, AlertCircle, ArrowLeft, Coffee, Wifi, Music, GlassWater, Cookie 
+} from 'lucide-react'
 import API from '../services/api'
 
 interface HotelBooking {
@@ -47,7 +50,10 @@ export default function Bookings() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   
-  // Ticket download modal state
+  // Dynamic navigation: Detail Screen vs List Screen
+  const [viewingDetails, setViewingDetails] = useState<any | null>(null)
+  
+  // Barcode print modal
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null)
 
   const loadAllBookings = () => {
@@ -81,6 +87,7 @@ export default function Bookings() {
     API.delete(`/bookings/${type}/${id}`)
       .then(() => {
         setMessage('Cancellation processed successfully.')
+        setViewingDetails(null)
         loadAllBookings()
       })
       .catch(() => {
@@ -88,7 +95,6 @@ export default function Bookings() {
       })
   }
 
-  // Dynamic filter classifying bookings into UPCOMING or PAST history
   const filterBookings = (list: any[]) => {
     return list.filter((item) => {
       const isCancelled = item.status === 'CANCELLED'
@@ -118,226 +124,316 @@ export default function Bookings() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-6 max-w-4xl mx-auto"
     >
       
-      {/* Title */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">My Reservations</h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400">View upcoming bookings, past history, and download print tickets</p>
-      </div>
+      {/* Detail Screen (Screen 8 Layout) */}
+      {viewingDetails ? (
+        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-3xl overflow-hidden shadow-md p-6 flex flex-col gap-5">
+          {/* Header */}
+          <div className="flex items-center gap-2 border-b border-gray-150 dark:border-zinc-800 pb-3">
+            <button 
+              onClick={() => setViewingDetails(null)} 
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg text-gray-500"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <h2 className="font-bold text-sm text-gray-800 dark:text-gray-200">Booking Details</h2>
+          </div>
 
-      {message && (
-        <div className="bg-indigo-50 dark:bg-brand-950/50 border border-indigo-250 dark:border-brand-900 text-indigo-700 dark:text-brand-300 p-4 rounded-xl text-xs flex items-center gap-2">
-          <AlertCircle size={16} />
-          <span>{message}</span>
-        </div>
-      )}
+          {/* Banner Image */}
+          <div className="h-48 rounded-2xl overflow-hidden relative">
+            <img 
+              src={
+                viewingDetails.type === 'HOTEL' 
+                  ? 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'
+                  : viewingDetails.type === 'RESTAURANT'
+                  ? 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=800&q=80'
+                  : 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80'
+              } 
+              alt="Booking Cover" 
+              className="w-full h-full object-cover" 
+            />
+            <span className="absolute bottom-4 left-4 bg-black/60 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              {viewingDetails.type.toLowerCase()}
+            </span>
+          </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-darkBorder pb-px">
-        {(['UPCOMING', 'PAST', 'CANCELLED'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
-              activeTab === tab
-                ? 'border-indigo-600 text-indigo-600 dark:border-brand-400 dark:text-brand-300'
-                : 'border-transparent text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+          {/* Title & Status */}
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+                {viewingDetails.title}
+              </h3>
+              <p className="text-xs text-gray-400 mt-0.5">{viewingDetails.subtitle}</p>
+            </div>
+            <span className="text-[10px] font-black uppercase bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300 px-2.5 py-1 rounded-xl">
+              Confirmed
+            </span>
+          </div>
 
-      {loading ? (
-        <div className="space-y-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="bg-white dark:bg-zinc-900 h-24 rounded-2xl animate-pulse"></div>
-          ))}
+          {/* Details Table Grid */}
+          <div className="grid grid-cols-2 gap-4 border-t border-b border-gray-100 dark:border-zinc-800 py-4 text-xs">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-gray-400 font-semibold">Date</span>
+              <span className="font-bold text-gray-850 dark:text-gray-200">{viewingDetails.date}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-gray-400 font-semibold">Time</span>
+              <span className="font-bold text-gray-850 dark:text-gray-200">{viewingDetails.time}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-gray-400 font-semibold">Party Size</span>
+              <span className="font-bold text-gray-850 dark:text-gray-200">{viewingDetails.guests}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-gray-400 font-semibold">Booking ID</span>
+              <span className="font-bold text-gray-850 dark:text-gray-200">CONF-{viewingDetails.id}829J</span>
+            </div>
+          </div>
+
+          {/* Included Features Section */}
+          <div className="flex flex-col gap-2">
+            <h4 className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">What's Included</h4>
+            <div className="flex gap-4">
+              {viewingDetails.type === 'HOTEL' && (
+                <>
+                  <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-850 px-3 py-2 rounded-xl text-[10px] font-bold text-gray-650 dark:text-gray-300">
+                    <Coffee size={12} className="text-amber-500" /> Breakfast
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-850 px-3 py-2 rounded-xl text-[10px] font-bold text-gray-650 dark:text-gray-300">
+                    <Wifi size={12} className="text-blue-500" /> Free WiFi
+                  </div>
+                </>
+              )}
+              {viewingDetails.type === 'RESTAURANT' && (
+                <>
+                  <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-850 px-3 py-2 rounded-xl text-[10px] font-bold text-gray-650 dark:text-gray-300">
+                    <GlassWater size={12} className="text-blue-400" /> Welcome Drink
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-850 px-3 py-2 rounded-xl text-[10px] font-bold text-gray-650 dark:text-gray-300">
+                    <Cookie size={12} className="text-amber-500" /> Table Snacks
+                  </div>
+                </>
+              )}
+              {viewingDetails.type === 'EVENT' && (
+                <>
+                  <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-850 px-3 py-2 rounded-xl text-[10px] font-bold text-gray-650 dark:text-gray-300">
+                    <GlassWater size={12} className="text-blue-400" /> Welcome Drink
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-850 px-3 py-2 rounded-xl text-[10px] font-bold text-gray-650 dark:text-gray-300">
+                    <Music size={12} className="text-purple-500" /> Live Music
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Action CTAs */}
+          <div className="flex gap-3 pt-2">
+            <button 
+              onClick={() => triggerDownloadTicket(viewingDetails.raw, viewingDetails.type)}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-2xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+            >
+              <Download size={14} />
+              View / Download Ticket
+            </button>
+            <button 
+              onClick={() => handleCancelBooking(viewingDetails.id, viewingDetails.type.toLowerCase() as any)}
+              className="px-5 border border-red-250 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-500 font-bold py-3 rounded-2xl text-xs transition-all"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          
-          {!hasItems && (
-            <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-12 text-center text-xs text-gray-400">
-              No bookings found in this category.
+        /* List Screen (Screen 7 Layout) */
+        <div className="flex flex-col gap-6">
+          {/* Title */}
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">My Reservations</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400">View upcoming bookings, past history, and download print tickets</p>
+          </div>
+
+          {message && (
+            <div className="bg-indigo-50 dark:bg-brand-950/50 border border-indigo-250 dark:border-brand-900 text-indigo-700 dark:text-brand-300 p-4 rounded-xl text-xs flex items-center gap-2">
+              <AlertCircle size={16} />
+              <span>{message}</span>
             </div>
           )}
 
-          {/* Hotel Stays */}
-          {filteredHotels.map((h) => (
-            <div key={h.id} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-sm">
-              <div className="flex gap-4 items-start">
-                <div className="bg-indigo-50 dark:bg-brand-950/50 p-3 rounded-xl text-indigo-600 dark:text-brand-300">
-                  <BedDouble size={24} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm">{h.room.hotel.name}</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{h.room.roomType}</p>
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    Check-in: {h.checkIn} • Check-out: {h.checkOut}
-                  </p>
-                </div>
-              </div>
+          {/* Tabs */}
+          <div className="flex gap-2 border-b border-gray-200 dark:border-darkBorder pb-px">
+            {(['UPCOMING', 'PAST', 'CANCELLED'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
+                  activeTab === tab
+                    ? 'border-indigo-600 text-indigo-600 dark:border-brand-400 dark:text-brand-300'
+                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
 
-              <div className="flex sm:flex-col items-end gap-3 justify-between border-t sm:border-t-0 pt-3 sm:pt-0">
-                <div className="text-right">
-                  <span className="text-xs font-black text-gray-800 dark:text-gray-200">${h.totalAmount}</span>
-                </div>
-                
-                <div className="flex gap-2 items-center">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg ${
-                    h.status === 'CONFIRMED' ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
-                  }`}>
-                    {h.status}
-                  </span>
-
-                  {h.status === 'CONFIRMED' && (
-                    <>
-                      <button
-                        onClick={() => triggerDownloadTicket(h, 'HOTEL')}
-                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 text-indigo-600 dark:text-brand-400 rounded-lg text-xs"
-                        title="Download Ticket"
-                      >
-                        <Download size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleCancelBooking(h.id, 'hotel')}
-                        className="text-[10px] font-semibold text-red-500 hover:underline"
-                      >
-                        Cancel stay
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-white dark:bg-zinc-900 h-24 rounded-2xl animate-pulse"></div>
+              ))}
             </div>
-          ))}
+          ) : (
+            <div className="space-y-4">
+              
+              {!hasItems && (
+                <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-12 text-center text-xs text-gray-400">
+                  No bookings found in this category.
+                </div>
+              )}
 
-          {/* Restaurant Reservations */}
-          {filteredReservations.map((r) => (
-            <div key={r.id} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-sm">
-              <div className="flex gap-4 items-start">
-                <div className="bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl text-amber-600 dark:text-amber-400">
-                  <Utensils size={24} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm">{r.restaurant.name}</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{r.restaurant.cuisineType} Cuisine</p>
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    Time: {new Date(r.reservationTime).toLocaleString()} • Guests: {r.partySize}
-                  </p>
-                </div>
-              </div>
+              {/* Hotel Stays */}
+              {filteredHotels.map((h) => (
+                <div 
+                  key={h.id} 
+                  onClick={() => setViewingDetails({
+                    id: h.id,
+                    type: 'HOTEL',
+                    title: h.room.hotel.name,
+                    subtitle: h.room.roomType,
+                    date: h.checkIn + " - " + h.checkOut,
+                    time: "12:00 PM Check-in",
+                    guests: "2 Guests",
+                    raw: h
+                  })}
+                  className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-sm cursor-pointer hover:border-indigo-500 transition-colors"
+                >
+                  <div className="flex gap-4 items-start">
+                    <div className="bg-indigo-50 dark:bg-brand-950/50 p-3 rounded-xl text-indigo-600 dark:text-brand-300">
+                      <BedDouble size={24} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm">{h.room.hotel.name}</h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{h.room.roomType}</p>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        Check-in: {h.checkIn} • Check-out: {h.checkOut}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="flex sm:flex-col items-end gap-3 justify-between border-t sm:border-t-0 pt-3 sm:pt-0">
-                <div className="flex gap-2 items-center">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg ${
-                    r.status === 'CONFIRMED' ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
-                  }`}>
-                    {r.status}
-                  </span>
-                  
-                  {r.status === 'CONFIRMED' && (
-                    <>
-                      <button
-                        onClick={() => triggerDownloadTicket(r, 'RESTAURANT')}
-                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 text-indigo-600 dark:text-brand-400 rounded-lg text-xs"
-                        title="Download Booking Details"
-                      >
-                        <Download size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleCancelBooking(r.id, 'restaurant')}
-                        className="text-[10px] font-semibold text-red-500 hover:underline"
-                      >
-                        Cancel table
-                      </button>
-                    </>
-                  )}
+                  <div className="flex sm:flex-col items-end gap-3 justify-between border-t sm:border-t-0 pt-3 sm:pt-0">
+                    <div className="text-right">
+                      <span className="text-xs font-black text-gray-800 dark:text-gray-200">${h.totalAmount}</span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300">
+                      {h.status}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              ))}
+
+              {/* Restaurant Reservations */}
+              {filteredReservations.map((r) => (
+                <div 
+                  key={r.id} 
+                  onClick={() => setViewingDetails({
+                    id: r.id,
+                    type: 'RESTAURANT',
+                    title: r.restaurant.name,
+                    subtitle: r.restaurant.cuisineType + " Cuisine",
+                    date: new Date(r.reservationTime).toLocaleDateString(),
+                    time: new Date(r.reservationTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    guests: r.partySize + " Guests",
+                    raw: r
+                  })}
+                  className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-sm cursor-pointer hover:border-indigo-500 transition-colors"
+                >
+                  <div className="flex gap-4 items-start">
+                    <div className="bg-amber-50 dark:bg-amber-950/20 p-3 rounded-xl text-amber-600 dark:text-amber-400">
+                      <Utensils size={24} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm">{r.restaurant.name}</h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{r.restaurant.cuisineType} Cuisine</p>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        Time: {new Date(r.reservationTime).toLocaleString()} • Guests: {r.partySize}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex sm:flex-col items-end gap-3 justify-between border-t sm:border-t-0 pt-3 sm:pt-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300">
+                      {r.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+
+              {/* Event Tickets */}
+              {filteredTickets.map((t) => (
+                <div 
+                  key={t.id} 
+                  onClick={() => setViewingDetails({
+                    id: t.id,
+                    type: 'EVENT',
+                    title: t.event.name,
+                    subtitle: "Show Tickets",
+                    date: new Date(t.event.dateTime).toLocaleDateString(),
+                    time: new Date(t.event.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    guests: t.quantity + " Ticket(s)",
+                    raw: t
+                  })}
+                  className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-sm cursor-pointer hover:border-indigo-500 transition-colors"
+                >
+                  <div className="flex gap-4 items-start">
+                    <div className="bg-purple-50 dark:bg-purple-950/20 p-3 rounded-xl text-purple-600 dark:text-purple-400">
+                      <Sparkles size={24} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm">{t.event.name}</h4>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        Date: {new Date(t.event.dateTime).toLocaleString()} • Tickets: {t.quantity}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex sm:flex-col items-end gap-3 justify-between border-t sm:border-t-0 pt-3 sm:pt-0">
+                    <div className="text-right">
+                      <span className="text-xs font-black text-gray-800 dark:text-gray-200">${t.event.price * t.quantity}</span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300">
+                      {t.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+
             </div>
-          ))}
-
-          {/* Event Tickets */}
-          {filteredTickets.map((t) => (
-            <div key={t.id} className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-darkBorder rounded-2xl p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-sm">
-              <div className="flex gap-4 items-start">
-                <div className="bg-purple-50 dark:bg-purple-950/20 p-3 rounded-xl text-purple-600 dark:text-purple-400">
-                  <Sparkles size={24} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-sm">{t.event.name}</h4>
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    Date: {new Date(t.event.dateTime).toLocaleString()} • Tickets purchased: {t.quantity}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex sm:flex-col items-end gap-3 justify-between border-t sm:border-t-0 pt-3 sm:pt-0">
-                <div className="text-right">
-                  <span className="text-xs font-black text-gray-800 dark:text-gray-200">${t.event.price * t.quantity}</span>
-                </div>
-
-                <div className="flex gap-2 items-center">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg ${
-                    t.status === 'CONFIRMED' ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
-                  }`}>
-                    {t.status}
-                  </span>
-                  
-                  {t.status === 'CONFIRMED' && (
-                    <>
-                      <button
-                        onClick={() => triggerDownloadTicket(t, 'EVENT')}
-                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 text-indigo-600 dark:text-brand-400 rounded-lg text-xs"
-                        title="Download Ticket"
-                      >
-                        <Download size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleCancelBooking(t.id, 'event')}
-                        className="text-[10px] font-semibold text-red-500 hover:underline"
-                      >
-                        Cancel tickets
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-
+          )}
         </div>
       )}
 
-      {/* Ticket Download / Print Modal */}
+      {/* Barcode Print Modal */}
       {selectedTicket && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col p-6 animate-slide-up">
             
-            {/* Modal Header */}
             <div className="flex justify-between items-center border-b border-gray-150 dark:border-zinc-800 pb-3">
               <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
                 <CheckCircle size={16} className="text-green-500" />
                 Voucher Ticket Details
               </h3>
-              <button 
-                onClick={() => setSelectedTicket(null)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-white"
-              >
+              <button onClick={() => setSelectedTicket(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
                 <X size={18} />
               </button>
             </div>
 
-            {/* Voucher Card Container */}
             <div id="print-area" className="border border-dashed border-gray-250 dark:border-zinc-700 rounded-xl p-5 my-4 bg-gray-50/50 dark:bg-zinc-900/50 flex flex-col gap-4 text-xs">
               <div className="text-center pb-2 border-b border-gray-200/50">
                 <h4 className="font-black text-sm uppercase tracking-wide text-indigo-700 dark:text-brand-400">ConciergeIQ Voucher</h4>
-                <p className="text-[10px] text-gray-400">Booking Reference: CONF-32A{selectedTicket.id}K9</p>
+                <p className="text-[10px] text-gray-400">Booking Reference: CONF-{selectedTicket.id}K9</p>
               </div>
 
               <div className="space-y-2.5">
@@ -398,7 +494,7 @@ export default function Bookings() {
                 </p>
               </div>
 
-              {/* Barcode representation */}
+              {/* Barcode */}
               <div className="flex flex-col items-center gap-1.5 pt-3 border-t border-gray-200/50">
                 <div className="h-10 w-full bg-gradient-to-r from-zinc-900 via-transparent to-zinc-900 flex justify-between px-4 dark:from-zinc-100">
                   {[...Array(24)].map((_, idx) => (
@@ -413,7 +509,6 @@ export default function Bookings() {
               </div>
             </div>
 
-            {/* Modal Actions */}
             <div className="flex gap-3">
               <button 
                 onClick={() => window.print()}
